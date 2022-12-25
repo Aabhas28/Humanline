@@ -1,40 +1,47 @@
-import React from 'react';
+import React, {useEffect,useState} from 'react';
 import { useParams } from 'react-router-dom';
 
 import PlaceList from '../componenets/PlaceList'
-
-
-const DUMMMY_PLACES = [
-    {
-        id: 'p1',
-        title: 'Empire State Building',
-        description: 'The state building',
-        imageUrl: 'https://imgs.search.brave.com/03mA25Na23cC3586ZfDSqeq8mvARiXYfrAZOhOP5SCU/rs:fit:1200:1200:1/g:ce/aHR0cHM6Ly9jZG4u/aGlzdG9yeS5jb20v/c2l0ZXMvMi8yMDE2/LzA0L0dldHR5SW1h/Z2VzLTU1NTE3MzYw/Ny5qcGc',
-        address: '20 W 34th St,New York, NY 10001',
-        location: {
-            lat: 40.7484405,
-            lng: -73.9878584
-        },
-        creator: 'u1'
-    },
-    {
-        id: 'p2',
-        title: 'Emp. State Building',
-        description: 'The state building',
-        imageUrl: 'https://imgs.search.brave.com/03mA25Na23cC3586ZfDSqeq8mvARiXYfrAZOhOP5SCU/rs:fit:1200:1200:1/g:ce/aHR0cHM6Ly9jZG4u/aGlzdG9yeS5jb20v/c2l0ZXMvMi8yMDE2/LzA0L0dldHR5SW1h/Z2VzLTU1NTE3MzYw/Ny5qcGc',
-        address: '20 W 34th St,New York, NY 10001',
-        location: {
-            lat: 40.7484405,
-            lng: -73.9878584
-        },
-        creator: 'u2'
-    }
-]
+import ErrorModal from '../../shared/components/UIElements/ErrorModal';
+import LoadingSpinner from '../../shared/components/FormElements/LoadingSpinner';
+import { useHttpClient } from '../../shared/hooks/http-hook';
 
 const UserPlaces = () => {
-  const userId =  useParams().userId;
-  const loadedPlaces = DUMMMY_PLACES.filter(place => place.creator === userId);
-return <PlaceList items= {loadedPlaces} />
-};
+    const [loadedPlaces, setLoadedPlaces] = useState();
+    const { isLoading, error, sendRequest, clearError } = useHttpClient();
+  
+    const userId =  useParams().userId;
+  
+    useEffect(() => {
+      const fetchPlaces = async () => {
+        try {
+          const responseData = await sendRequest(
+            `http://localhost:5000/api/places/user/${userId}`
+          );
+          setLoadedPlaces(responseData.places);
+        } catch (err) {}
+      };
+     fetchPlaces();
+    }, [sendRequest, userId]);
+  
+    const placeDeleteHandler = deletedPlaceId => {
+  setLoadedPlaces(prevPlaces => 
+    prevPlaces.filter(place => place.id !== deletedPlaceId)
+    );
+    };
 
-export default UserPlaces;
+    return (
+      <React.Fragment>
+        <ErrorModal error={error} onClear={clearError} />
+        {isLoading && (
+          <div className="center">
+            <LoadingSpinner />
+          </div>
+        )}
+        {!isLoading && loadedPlaces && <PlaceList items={loadedPlaces} onDeletePlace = {placeDeleteHandler} />}
+      </React.Fragment>
+    );
+  };
+  
+  export default UserPlaces;
+  
